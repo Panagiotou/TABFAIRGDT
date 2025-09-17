@@ -1,0 +1,37 @@
+{
+    "name": "credit",
+    "ignore_features": ["ID"],
+    "url": "https://archive.ics.uci.edu/dataset/350/default+of+credit+card+clients",
+    "target": "Y",
+    "favorable_target": "1",
+    "protected_attribute_under_represented": "male",
+    "dtype_map": {
+        "X1": "int",
+        "sex": "category",
+        "X3": "int",
+        "X4": "int",
+        "X5": "int",
+        "X6": "int",
+        "X7": "int",
+        "X8": "int",
+        "X9": "int",
+        "X10": "int",
+        "X11": "int",
+        "X12": "int",
+        "X13": "int",
+        "X14": "int",
+        "X15": "int",
+        "X16": "int",
+        "X17": "int",
+        "X18": "int",
+        "X19": "int",
+        "X20": "int",
+        "X21": "int",
+        "X22": "int",
+        "X23": "int",
+        "Y": "category"
+    },
+    "rename": {
+        "X2": "sex"
+    }
+}

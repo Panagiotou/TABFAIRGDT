@@ -1,0 +1,26 @@
+{
+    "name": "adult",
+    "ignore_features": ["fnlwgt", "educational-num"],
+    "url": "https://raw.githubusercontent.com/tailequy/fairness_dataset/main/experiments/data/adult-clean.csv",
+    "target": "Class-label",
+    "favorable_target": "1",
+    "protected_attribute_under_represented": "Female",
+    "dtype_map": {
+        "age": "int",
+        "workclass": "category",
+        "education": "category",
+        "marital-status": "category",
+        "occupation": "category", 
+        "relationship": "category", 
+        "race": "category", 
+        "sex": "category", 
+        "capital-gain": "int", 
+        "capital-loss": "int",
+        "hours-per-week": "int", 
+        "native-country": "category", 
+        "Class-label": "category"
+    },
+    "rename": {
+        "gender": "sex"
+    }
+}

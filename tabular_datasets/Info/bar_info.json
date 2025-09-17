@@ -1,0 +1,25 @@
+{
+    "name": "bar",
+    "ignore_features": [],
+    "url": "https://raw.githubusercontent.com/damtharvey/law-school-dataset/main/law_dataset.csv",
+    "target": "pass_bar",
+    "favorable_target": "1",
+    "protected_attribute_under_represented": "female",
+    "dtype_map": {
+        "decile1b": "int",
+        "decile3": "int",
+        "lsat": "int",
+        "ugpa": "int",
+        "zfygpa": "int",
+        "zgpa": "int",
+        "fulltime": "int",
+        "fam_inc": "int",
+        "sex": "category",
+        "racetxt": "int",
+        "tier": "int",
+        "pass_bar": "category"
+    },
+    "rename": {
+        "male": "sex"
+    }
+}

@@ -1,0 +1,28 @@
+{
+    "name": "acsiID",
+    "ignore_features": [],
+    "url": "folktables",
+    "survey_year": 2023,
+    "horizon": "1-Year", 
+    "survey": "person",
+    "state": "ID",
+    "target": "PINCP",
+    "favorable_target": "1",
+    "protected_attribute_under_represented": "Female",
+    "dtype_map": {
+        "AGEP": "int",
+        "COW": "category",
+        "SCHL": "category",
+        "MAR": "category",
+        "OCCP": "category",
+        "POBP": "category",
+        "WKHP": "int",
+        "RAC1P": "category",
+        "sex": "category",
+        "PINCP": "category"
+    },
+    "rename": {"SEX":"sex"}
+}
+
+
+

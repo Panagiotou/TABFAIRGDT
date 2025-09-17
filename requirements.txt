@@ -1,0 +1,17 @@
+pandas
+sdmetrics
+fairlearn
+ipython
+# optuna-integration[catboost]
+torch
+lightgbm
+meson
+meson-python
+ninja
+disjoint-set
+cvxopt
+jax
+scikit-learn==1.6.1
+Cython
+ucimlrepo
+folktables

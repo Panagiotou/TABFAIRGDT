@@ -1,0 +1,30 @@
+{
+    "name": "bank-marketing",
+    "ignore_features": [],
+    "url": "https://raw.githubusercontent.com/tailequy/fairness_dataset/main/experiments/data/bank-full.csv",
+    "target": "y",
+    "favorable_target": 1,
+    "protected_attribute_under_represented": "single",
+    "dtype_map": {
+        "age": "int",
+        "job": "category",
+        "sex": "category", 
+        "education": "category",
+        "default": "category",
+        "balance": "int",
+        "housing": "category",
+        "loan": "category",
+        "contact": "category",
+        "day": "int",
+        "month": "category",
+        "duration": "int",
+        "campaign": "int",
+        "pdays": "int",
+        "previous": "int",
+        "poutcome": "category",
+        "y": "category"
+    },
+    "rename": {
+        "marital": "sex"
+    }
+}
