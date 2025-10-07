@@ -73,3 +73,13 @@ However, this is not recomended, as this approach leads to loss in utility
 </figure>
 
 ---
+
+### References
+
+"[TABFAIRGDT: A Fast Fair Tabular Data Generator using Autoregressive Decision Trees][1]", Emmanouil Panagiotou, Benoît Ronval, Arjun Roy, Ludwig Bothmann, Bernd Bischl, Siegfried Nijssen, and Eirini Ntoutsi, IEEE International Conference on Data Mining (ICDM), 2025
+
+Contact: Emmanouil Panagiotou (emmanouil.panagiotou@fu-berlin.de), Benoît Ronval (benoit.ronval@uclouvain.be)
+
+[1]:<https://arxiv.org/abs/2509.19927>
+
+---
