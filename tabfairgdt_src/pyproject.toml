@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "tabfairgdt"
-version = "0.1.0"
+version = "0.1.1"
 description = "Fast Fair Tabular Data Generator using Autoregressive Decision Trees"
 readme = "README.md"
 license = { text = "MIT" }

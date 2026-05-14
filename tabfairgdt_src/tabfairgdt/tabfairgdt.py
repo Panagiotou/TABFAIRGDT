@@ -516,9 +516,6 @@ class TABFAIRGDT:
         """
         self.k = k
 
-        if self.seed is not None:
-            np.random.seed(self.seed)
-
         # check generate
         self.validator.check_generate()
         # generate

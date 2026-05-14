@@ -171,7 +171,7 @@ class TestTabFairGDTParams:
         assert set(synth.columns) == set(df.columns)
 
     def test_seed_reproducibility(self):
-        """Same seed must produce identical synthetic data."""
+        """Two generators fitted with the same seed produce the same first draw."""
         df = make_binary_df(n=100)
         kwargs = dict(
             protected_attribute="sex",
@@ -192,6 +192,23 @@ class TestTabFairGDTParams:
             synth1.reset_index(drop=True),
             synth2.reset_index(drop=True),
         )
+
+    def test_generate_diversity(self):
+        """Repeated generate() calls on the same fitted generator produce different data."""
+        df = make_binary_df(n=100)
+        gen = TABFAIRGDT(
+            protected_attribute="sex",
+            target="income",
+            dtype_map=DTYPE_MAP,
+            seed=99,
+            parallel=False,
+        )
+        gen.fit(df, lamda=0.5)
+        synth1 = gen.generate(k=100)
+        synth2 = gen.generate(k=100)
+
+        # At least some rows must differ — identical outputs would mean diversity is broken
+        assert not synth1.equals(synth2), "Repeated generate() calls produced identical output"
 
 
 # ---------------------------------------------------------------------------
