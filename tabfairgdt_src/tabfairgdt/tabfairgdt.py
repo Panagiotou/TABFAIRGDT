@@ -17,6 +17,24 @@ import numpy as np
 
 
 class TABFAIRGDT:
+    """Fast Fair Tabular Data Generator using Autoregressive Decision Trees.
+
+    Generates synthetic tabular data that mirrors the statistical properties of
+    the training data while enforcing fairness constraints on a target variable
+    with respect to a protected (sensitive) attribute.
+
+    The algorithm fits one CART model per column in an autoregressive order:
+    each column is modelled conditioned on all previously visited columns.
+    Fairness is achieved by post-hoc *leaf relabeling* — a greedy procedure
+    that adjusts the class-probability distributions of selected tree leaves
+    to reduce discrimination with minimal loss in accuracy.
+
+    Reference:
+        Panagiotou et al., "TABFAIRGDT: A Fast Fair Tabular Data Generator
+        using Autoregressive Decision Trees", IEEE ICDM 2025.
+        https://arxiv.org/abs/2509.19927
+    """
+
     def __init__(self,
                  method=None,
                  visit_sequence=None,
@@ -38,6 +56,68 @@ class TABFAIRGDT:
                  acc_threshold=-1,
                  parallel=True
                 ):
+        """Initialise the TabFairGDT generator.
+
+        Parameters
+        ----------
+        protected_attribute : str
+            Column name of the sensitive/protected attribute (e.g. ``"sex"``).
+            Generated independently from all other features.
+        target : str
+            Column name of the binary target variable that is subject to the
+            fairness constraint (e.g. ``"income"``).
+        dtype_map : dict[str, str]
+            Mapping from every column name to its type string.
+            Supported values: ``'int'``, ``'float'``, ``'datetime'``,
+            ``'category'``, ``'bool'``.
+        criterion : str, default ``"dp"``
+            Fairness criterion used during leaf relabeling.
+            Currently only demographic parity ``"dp"`` is supported.
+        acc_threshold : float, default ``-1``
+            Maximum allowed relative accuracy drop during leaf relabeling
+            (e.g. ``0.05`` allows a 5 % drop).  ``-1`` means no limit.
+        parallel : bool, default ``True``
+            If ``True``, column models are fitted in parallel using all
+            available CPU threads.
+        seed : int or None, default ``None``
+            Random seed passed to all internal CART models.
+        method : None, str, or list, default ``None``
+            Generation method assignment.  ``None`` uses the ``default_method``
+            for every column.  A string (e.g. ``"cart"``) applies that method to
+            all columns.  A list assigns methods per column in visit order.
+        visit_sequence : list or None, default ``None``
+            Ordered list of column names (or integer indices) specifying the
+            autoregressive generation order.  ``None`` uses the original column
+            order.  The first column always uses ``"sample"`` (marginal draw).
+        default_method : str, default ``"cart"``
+            Method used for all columns when ``method=None``.
+            Allowed values: ``"cart"``, ``"cart_leaf_relab_lamda"``,
+            ``"cart_fair_splitting"``.
+        proper : bool, default ``False``
+            If ``True``, bootstrap-resample the training data for each CART
+            model (proper imputation).
+        smoothing : bool or str or dict, default ``False``
+            Apply kernel density smoothing to continuous columns.
+            Pass ``"density"`` to enable for all numeric columns, or a dict
+            mapping column names to ``"density"`` / ``False``.
+        numtocat : list or None, default ``None``
+            List of numeric column names to convert to binned categorical
+            variables before fitting.
+        catgroups : int or dict or None, default ``None``
+            Number of bins for ``numtocat`` conversion.  An int applies the
+            same number of bins to all columns; a dict maps column names to
+            bin counts.  Defaults to 5 bins per column.
+        cont_na : dict or None, default ``None``
+            Dict mapping numeric column names to sentinel values that should
+            be treated as missing (e.g. ``{"age": [-1, 999]}``).
+        re_order : bool or str, default ``False``
+            Reorder features before fitting by correlation with the target or
+            protected attribute.  Accepted string values:
+            ``"corr_asc_target"``, ``"corr_desc_target"``,
+            ``"corr_asc_protected"``, ``"corr_desc_protected"``.
+        verbose : bool, default ``False``
+            Print column-level fitting and generation progress.
+        """
         # initialise the validator and processor
         self.validator = Validator(self)
         self.processor = Processor(self)
@@ -90,7 +170,7 @@ class TABFAIRGDT:
         df_decoded = df.copy()
         for column, mapping in self.original_mappings.items():
             if column in df_decoded.columns:
-                df_decoded[column] = df_decoded[column].map(mapping)
+                df_decoded[column] = df_decoded[column].map(mapping).astype("category")
         return df_decoded
         
 
@@ -153,6 +233,37 @@ class TABFAIRGDT:
         return corr_series[sorted_correlations.index]
     
     def fit(self, df, lamda=0.5):
+        """Fit one CART model per column on the training data.
+
+        Column models are fitted in the order defined by ``visit_sequence``.
+        The first column uses marginal sampling; every subsequent column is
+        modelled conditioned on all previously generated columns.  The target
+        column uses a fair CART with leaf relabeling controlled by ``lamda``.
+
+        Parameters
+        ----------
+        df : pandas.DataFrame
+            Training data.  All columns must be present in ``dtype_map`` and
+            have dtypes consistent with the declared type strings.
+            Categorical columns must use ``pandas.CategoricalDtype`` (or be
+            cast with ``.astype("category")``).
+        lamda : float, default ``0.5``
+            Fairness–utility tradeoff for leaf relabeling of the target column.
+            ``0.0`` keeps the original CART predictions (maximum utility),
+            ``1.0`` fully randomises predictions toward parity (maximum
+            fairness).  Values between 0 and 1 interpolate linearly.
+
+        Returns
+        -------
+        None
+            The fitted models are stored internally and used by
+            :meth:`generate`.
+
+        Raises
+        ------
+        AssertionError
+            If parameter validation fails (wrong types, mismatched columns, …).
+        """
         # TODO check df and check/EXTRACT dtypes
         # - all column names of df are unique
         # - all columns data of df are consistent
@@ -168,6 +279,9 @@ class TABFAIRGDT:
         # train_df = train_df.reindex(columns=new_order)
 
         self.lamda = lamda
+
+        if self.seed is not None:
+            np.random.seed(self.seed)
 
         self.original_df_cols = list(df.columns)
 
@@ -326,7 +440,7 @@ class TABFAIRGDT:
 
 
 
-    def _fit_old(self, df):
+    def _fit(self, df):
         self.saved_methods = {}
 
         # train
@@ -375,7 +489,35 @@ class TABFAIRGDT:
 
 
     def generate(self, k=None):
+        """Generate a synthetic dataset from the fitted models.
+
+        Samples are drawn autoregressively: the first column is sampled from
+        its marginal distribution; each subsequent column is sampled from its
+        leaf distribution conditioned on all previously generated columns.
+        The target and protected-attribute columns are generated last,
+        conditioned on all other columns.
+
+        Parameters
+        ----------
+        k : int or None, default ``None``
+            Number of synthetic rows to generate.  ``None`` generates the same
+            number of rows as the training dataset.
+
+        Returns
+        -------
+        pandas.DataFrame
+            Synthetic dataset with the same column names and dtypes as the
+            training data, in the original column order.
+
+        Raises
+        ------
+        AssertionError
+            If the model has not been fitted yet or ``k`` has an invalid type.
+        """
         self.k = k
+
+        if self.seed is not None:
+            np.random.seed(self.seed)
 
         # check generate
         self.validator.check_generate()

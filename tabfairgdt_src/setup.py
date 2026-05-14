@@ -1,12 +1,4 @@
-from setuptools import setup, find_packages
+from setuptools import setup
 
-setup(
-    name="tabfairgdt",
-    author="",
-    author_email="",
-    description="Python implementation of tabfairgdt",
-    long_description_content_type="text/markdown",
-    url="",
-    packages=find_packages(),
-    python_requires='>=3.10',
-)
+# All configuration is in pyproject.toml
+setup()

@@ -13,6 +13,27 @@ from tqdm import tqdm
 
 
 class TABFAIRGDT_FAIR_SPLITTING_CRITERION:
+    """Tabular data generator using fair splitting criterion (FARE) trees.
+
+    An alternative to :class:`~tabfairgdt.TABFAIRGDT` that enforces fairness
+    during tree *growing* via a custom fair Gini splitting criterion, rather
+    than via post-hoc leaf relabeling.
+
+    .. note::
+        This variant requires a custom scikit-learn build with the FARE
+        criterion.  Install it from ``scikit-learn-main/`` in the repository::
+
+            cd scikit-learn-main && pip install --editable .
+
+        Without it, initialisation will raise an ``ImportError`` when
+        ``target_only_fair=False`` or ``leaf_relab=False``.
+
+    .. warning::
+        This variant typically achieves lower utility than
+        :class:`~tabfairgdt.TABFAIRGDT`.  Prefer ``TABFAIRGDT`` unless you
+        specifically want fair-splitting trees.
+    """
+
     def __init__(self,
                  method=None,
                  visit_sequence=None,
@@ -33,6 +54,50 @@ class TABFAIRGDT_FAIR_SPLITTING_CRITERION:
                  criterion="dp",
                  re_order=False,
                 ):
+        """Initialise the fair-splitting-criterion generator.
+
+        Parameters
+        ----------
+        protected_attribute : str
+            Column name of the sensitive/protected attribute.
+        target : str
+            Column name of the binary target variable.
+        dtype_map : dict[str, str]
+            Mapping from column names to type strings (``'int'``, ``'float'``,
+            ``'datetime'``, ``'category'``, ``'bool'``).
+        criterion : str, default ``"dp"``
+            Fairness criterion for the fair Gini split.  Only ``"dp"``
+            (demographic parity) is currently supported.
+        target_only_fair : bool, default ``True``
+            If ``True``, apply the fair splitting criterion only to the target
+            column.  If ``False``, apply it to all discrete columns.
+        leaf_relab : bool, default ``False``
+            If ``True``, further apply leaf relabeling on top of fair splitting
+            for the target column (requires custom sklearn).
+        seed : int or None, default ``None``
+            Random seed for all CART models.
+        method : None, str, or list, default ``None``
+            Per-column method assignment.  ``None`` infers from ``default_method``.
+        visit_sequence : list or None, default ``None``
+            Autoregressive column generation order.  ``None`` uses original
+            column order.
+        default_method : str, default ``"cart"``
+            Fallback method for columns when ``method=None``.
+        proper : bool, default ``False``
+            Bootstrap-resample training data for each model.
+        smoothing : bool or str or dict, default ``False``
+            Kernel density smoothing for continuous columns.
+        numtocat : list or None, default ``None``
+            Numeric columns to convert to binned categoricals.
+        catgroups : int or dict or None, default ``None``
+            Bin count(s) for ``numtocat`` conversion (default 5).
+        cont_na : dict or None, default ``None``
+            Sentinel values to treat as missing in numeric columns.
+        re_order : bool or str, default ``False``
+            Feature reordering strategy (``False`` or a ``"corr_*"`` string).
+        verbose : bool, default ``False``
+            Print per-column progress.
+        """
         # initialise the validator and processor
         self.validator = Validator(self)
         self.processor = Processor(self)
@@ -82,7 +147,7 @@ class TABFAIRGDT_FAIR_SPLITTING_CRITERION:
         df_decoded = df.copy()
         for column, mapping in self.original_mappings.items():
             if column in df_decoded.columns:
-                df_decoded[column] = df_decoded[column].map(mapping)
+                df_decoded[column] = df_decoded[column].map(mapping).astype("category")
         return df_decoded
         
 
@@ -95,6 +160,22 @@ class TABFAIRGDT_FAIR_SPLITTING_CRITERION:
         self.reverse_mappings = {col: {v: k for k, v in self.original_mappings[col].items()} for col in self.original_mappings}
 
     def fit(self, df, dtypes=None, lamda=0.5):
+        """Fit CART models with a fair splitting criterion on the training data.
+
+        Parameters
+        ----------
+        df : pandas.DataFrame
+            Training data.  Columns must match ``dtype_map``.
+        dtypes : ignored
+            Retained for API compatibility; dtypes are taken from
+            ``dtype_map`` passed at construction time.
+        lamda : float, default ``0.5``
+            Fairness strength passed to the fair Gini criterion.
+
+        Returns
+        -------
+        None
+        """
         # TODO check df and check/EXTRACT dtypes
         # - all column names of df are unique
         # - all columns data of df are consistent
@@ -201,6 +282,20 @@ class TABFAIRGDT_FAIR_SPLITTING_CRITERION:
             self.saved_methods[col] = col_method
 
     def generate(self, k=None):
+        """Generate a synthetic dataset from the fitted models.
+
+        Parameters
+        ----------
+        k : int or None, default ``None``
+            Number of rows to generate.  ``None`` generates as many rows as
+            the training dataset.
+
+        Returns
+        -------
+        pandas.DataFrame
+            Synthetic data with the same columns and dtypes as the training
+            data.
+        """
         self.k = k
 
         # check generate

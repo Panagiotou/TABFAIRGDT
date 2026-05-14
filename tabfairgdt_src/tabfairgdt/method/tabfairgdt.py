@@ -94,7 +94,7 @@ class FairCARTLeafRelabLamda(Method):
 
         leaves_y_df = pd.DataFrame({'leaves': leaves, 'y': y})
 
-        leaves_y_dict = leaves_y_df.groupby('leaves').apply(lambda x: x.to_numpy()[:, -1]).to_dict()
+        leaves_y_dict = leaves_y_df.groupby('leaves')['y'].apply(np.array).to_dict()
 
         self.leaves_y_probs_dict = {}
 
@@ -132,7 +132,7 @@ class FairCARTLeafRelabLamda(Method):
         y_pred = np.zeros(len(leaves_pred), dtype=object)
 
         leaves_pred_index_df = pd.DataFrame({'leaves_pred': leaves_pred, 'index': range(len(leaves_pred))})
-        leaves_pred_index_dict = leaves_pred_index_df.groupby('leaves_pred').apply(lambda x: x.to_numpy()[:, -1]).to_dict()
+        leaves_pred_index_dict = leaves_pred_index_df.groupby('leaves_pred')['index'].apply(np.array).to_dict()
 
         for leaf, indices in leaves_pred_index_dict.items():
 
