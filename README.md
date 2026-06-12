@@ -6,7 +6,17 @@
 </figure>
 
 
-### Installation Instructions
+### Install using pip
+
+```
+pip install tabfairgdt
+```
+
+See the file `example.py` for an example using the `tabfairgdt` package.
+
+---
+
+### Installation Instructions (from GitHub)
 
 Create new conda environment e.g.
 ```
